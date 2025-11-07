@@ -1,4 +1,5 @@
-import br.com.vexpera.ktoon.*
+package br.com.vexpera.ktoon
+
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull

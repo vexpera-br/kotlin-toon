@@ -1,4 +1,5 @@
-import br.com.vexpera.ktoon.*
+package br.com.vexpera.ktoon
+
 import kotlin.test.*
 
 data class Author(val id: Int, val name: String, val role: String)
