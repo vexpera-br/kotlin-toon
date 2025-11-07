@@ -1,0 +1,45 @@
+project:
+  name: "Dream Engine"
+  version: 3
+  active: true
+  metadata:
+    created: "2025-11-06"
+    tags[4]{id,name}:
+      1,ai
+      2,render
+      3,story
+      4,test
+  authors[3]{id,name,role}:
+    1,Cláudio Marcelo Silva,lead
+    2,Jane Doe,artist
+    3,John Smith,engineer
+  description: "Complex nested TOON example with escape sequences: line1\\nline2"
+  notes:
+    -: "A complex project structure"
+    -: "Testing nested blocks and mixed tables"
+  settings:
+    engine:
+      name: "Flux"
+      version: 1.12
+      flags[3]{key,value}:
+        debug,true
+        safe_mode,false
+        allow_remote,false
+    ui:
+      theme: "dark"
+      layout:
+        panels[2]{id,title,visible}:
+          1,Main,true
+          2,Inspector,false
+  assets[4]{id,type,path,size}:
+    1,image,"/textures/sky.png",2048
+    2,model,"/models/character.obj",4096
+    3,audio,"/sounds/theme.ogg",512
+    4,script,"/scripts/init.kts",12
+  build:
+    success: true
+    duration: 4.35
+    logs[3]{level,message}:
+      info,"Build started"
+      warn,"Low memory"
+      info,"Build finished successfully"

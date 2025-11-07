@@ -1,0 +1,6 @@
+config:
+  title: "My App"
+  debug: true
+  limits:
+    retries: 3
+    timeout: 5.5

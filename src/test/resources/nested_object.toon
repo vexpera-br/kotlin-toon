@@ -1,0 +1,5 @@
+app:
+  version: 1
+  users[2]{id,name,role}:
+    1,Alice,admin
+    2,Bob,user
