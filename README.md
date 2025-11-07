@@ -1,6 +1,6 @@
 # 🧬 Kotlin TOON — Token-Oriented Object Notation
 
-**TOON (Token-Oriented Object Notation)** is a lightweight, human-readable data serialization format designed for Kotlin.
+**TOON (Token-Oriented Object Notation)** is a lightweight, human-readable data serialization format designed for shorten data exchanges, specially for LLMs.
 It’s inspired by YAML’s indentation and CSV’s tabular simplicity — ideal for configuration files, structured logs, or data exchange between systems.
 
 ---
