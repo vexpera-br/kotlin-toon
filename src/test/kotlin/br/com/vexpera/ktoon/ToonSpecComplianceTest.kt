@@ -1,5 +1,6 @@
 package br.com.vexpera.ktoon
 
+import br.com.vexpera.ktoon.decoder.DecoderOptions
 import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.test.*
@@ -27,7 +28,7 @@ class ToonSpecComplianceTest {
     fun strictModeRejectsWrongRowCount() {
         val text = readSpecFile("02_wrong_row_count.toon")
         val ex = assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecodeOptions(strict = true))
+            Toon.decode(text, DecoderOptions(strict = true))
         }
         assertTrue(ex.message!!.contains("Expected", ignoreCase = true))
     }
@@ -39,11 +40,11 @@ class ToonSpecComplianceTest {
 
         // Strict mode must fail
         assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecodeOptions(strict = true))
+            Toon.decode(text, DecoderOptions(strict = true, debug = true))
         }
 
         // Lenient mode should succeed
-        val decoded = Toon.decode(text, DecodeOptions(strict = false)) as Map<*, *>
+        val decoded = Toon.decode(text, DecoderOptions(strict = false, debug = true)) as Map<*, *>
         val app = decoded["app"] as Map<*, *>
         assertEquals("Demo", app["name"])
     }
@@ -53,7 +54,7 @@ class ToonSpecComplianceTest {
     fun strictModeRejectsTabsInIndentation() {
         val text = readSpecFile("04_tabs_in_indentation.toon")
         val ex = assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecodeOptions(strict = true))
+            Toon.decode(text, DecoderOptions(strict = true))
         }
         assertTrue(ex.message!!.contains("tab", ignoreCase = true))
     }
@@ -101,7 +102,7 @@ class ToonSpecComplianceTest {
     fun strictModeRejectsBlankLinesInsideTable() {
         val text = readSpecFile("08_blank_line_strict.toon")
         val ex = assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecodeOptions(strict = true))
+            Toon.decode(text, DecoderOptions(strict = true))
         }
         assertTrue(ex.message!!.contains("blank", ignoreCase = true))
     }
@@ -110,7 +111,7 @@ class ToonSpecComplianceTest {
     @Test
     fun lenientModeIgnoresBlankLinesInsideTable() {
         val text = readSpecFile("09_blank_line_lenient.toon")
-        val decoded = Toon.decode(text, DecodeOptions(strict = false))
+        val decoded = Toon.decode(text, DecoderOptions(strict = false))
         val users = (decoded as Map<*, *>)["users"] as List<Map<String, Any?>>
         assertEquals(2, users.size)
     }
@@ -120,7 +121,7 @@ class ToonSpecComplianceTest {
     fun unimplementedListItemShouldThrowInStrictMode() {
         val text = readSpecFile("10_unsupported_list_items.toon")
         val ex = assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecodeOptions(strict = true))
+            Toon.decode(text, DecoderOptions(strict = true, debug = true))
         }
         assertTrue(
             ex.message!!.contains("Unsupported", ignoreCase = true) ||

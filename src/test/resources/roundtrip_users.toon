@@ -1,3 +1,7 @@
+# --- roundtrip test table ---
 users[2]{id,name,role}:
+  # row 1
   1,Alice,admin
+  # row 2
   2,Bob,user
+# --- end users table ---
