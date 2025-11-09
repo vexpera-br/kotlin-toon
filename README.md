@@ -160,7 +160,7 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 ---
 
-##COMMING SOON:
+## COMMING SOON:
 
 KMP full support (JVM, Android, iOS, KotlinJS, Native)
 
