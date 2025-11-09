@@ -1,6 +1,4 @@
-# --- lenient blank line inside table ---
-users[2]{id,name}:
+users[#2]{id,name}:
   1,Alice
 
   2,Bob
-# --- end table ---

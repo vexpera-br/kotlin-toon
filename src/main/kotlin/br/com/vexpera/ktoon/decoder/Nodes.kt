@@ -210,9 +210,9 @@ internal object Nodes {
                 // Trata linhas em branco
                 if (ln.content.isEmpty()) {
                     ctx.debug(ln, "Linha em branco detectada")
-                    if (ctx.options.strict && !hdr.hasLengthMarker) {
-                        ctx.debug(ln, "Falha: linha em branco em tabela sem marcador de tamanho")
-                        parseError(ln, "Blank line inside tabular rows is not allowed")
+                    if (ctx.options.strict) {
+                        ctx.debug(ln, "Falha: linha em branco em modo estrito")
+                        parseError(ln, "Blank line inside tabular rows is not allowed in strict mode")
                     } else {
                         scanner.next()
                         continue

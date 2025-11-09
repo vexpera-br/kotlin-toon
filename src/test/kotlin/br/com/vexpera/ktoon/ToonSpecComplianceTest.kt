@@ -17,7 +17,7 @@ class ToonSpecComplianceTest {
     @Test
     fun decodeTableWithLengthMarker() {
         val text = readSpecFile("01_length_marker.toon")
-        val data = Toon.decode(text)
+        val data = Toon.decode(text, DecoderOptions(strict = false))
         val users = (data as Map<*, *>)["users"] as List<Map<String, Any?>>
         assertEquals(2, users.size)
         assertEquals("Bob", users[1]["name"])
@@ -139,6 +139,30 @@ class ToonSpecComplianceTest {
         val users = (result as Map<*, *>)["users"] as List<Map<String, Any?>>
 
         assertTrue(expected.zip(users).all { (e, a) -> e == a })
+    }
+
+    @Test
+    fun strictModeRejectsBlankLinesEvenWithLengthMarker() {
+        val text = readSpecFile("12_strict_blank_lines_table.toon")
+        assertFailsWith<ToonParseException> {
+            Toon.decode(text, DecoderOptions(strict = true))
+        }
+    }
+
+    @Test
+    fun strictModeRejectsMismatchedRowCountWithLengthMarker() {
+        val text = readSpecFile("13_strict_reject_wrong_row_count.toon")
+        assertFailsWith<ToonParseException> {
+            Toon.decode(text, DecoderOptions(strict = true))
+        }
+    }
+
+    @Test
+    fun lenientModeIgnoresBlankLinesInsideTableWithLengthMarker() {
+        val text = readSpecFile("14_lenient_ignore_blank_table.toon")
+        val decoded = Toon.decode(text, DecoderOptions(strict = false))
+        val users = (decoded as Map<*, *>)["users"] as List<Map<String, Any?>>
+        assertEquals(2, users.size)
     }
 
 }
