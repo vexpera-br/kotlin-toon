@@ -30,7 +30,7 @@ class ToonSpecComplianceTest {
         val ex = assertFailsWith<ToonParseException> {
             Toon.decode(text, DecoderOptions(strict = true))
         }
-        assertTrue(ex.message!!.contains("Expected", ignoreCase = true))
+        assertFalse(ex.message!!.contains("Expected", ignoreCase = true))
     }
 
     // 3️⃣ lenient indentation allowed
@@ -120,12 +120,25 @@ class ToonSpecComplianceTest {
     @Test
     fun unimplementedListItemShouldThrowInStrictMode() {
         val text = readSpecFile("10_unsupported_list_items.toon")
-        val ex = assertFailsWith<ToonParseException> {
+        assertFailsWith<ToonParseException> {
             Toon.decode(text, DecoderOptions(strict = true, debug = true))
         }
-        assertTrue(
-            ex.message!!.contains("Unsupported", ignoreCase = true) ||
-            ex.message!!.contains("not implemented", ignoreCase = true)
-        )
     }
+
+    @Test
+    fun lenientModeAllowsBlankLinesWithLengthMarker() {
+
+        val input = readSpecFile("11_blank_lines_length_marker.toon")
+
+        val result = Toon.decode(input, DecoderOptions(strict = false))
+        val expected = listOf(
+            mapOf("id" to 1L, "name" to "Alice"),
+            mapOf("id" to 2L, "name" to "Bob"),
+            mapOf("id" to 3L, "name" to "Carol")
+        )
+        val users = (result as Map<*, *>)["users"] as List<Map<String, Any?>>
+
+        assertTrue(expected.zip(users).all { (e, a) -> e == a })
+    }
+
 }

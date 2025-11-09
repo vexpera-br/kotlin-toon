@@ -27,15 +27,11 @@ internal data class Header(
     val key: String?,
     val length: Int,
     val delim: Delim,
-    val fields: List<String>?,     // null → não tabular
+    val fields: List<String>?,
     val hasLengthMarker: Boolean,
-    val inlineValues: String?      // parte após ":" (para inline array)
+    val inlineValues: String?
 ) {
     companion object {
-
-        /**
-         * Faz uma análise leve e permissiva do cabeçalho, sem lançar exceções.
-         */
         fun tryParse(lineContent: String): Header? {
             val colon = lineContent.firstUnquotedColonIndex()
             if (colon < 0) return null
@@ -87,9 +83,6 @@ internal data class Header(
             )
         }
 
-        /**
-         * Parser completo e rigoroso de cabeçalhos.
-         */
         fun parseOrThrow(lineContent: String, ctx: ParseContext): Header {
             val colon = lineContent.firstUnquotedColonIndex()
                 .takeIf { it >= 0 }
@@ -138,7 +131,7 @@ internal data class Header(
                 }
             }
 
-            return Header(
+            val hdr = Header(
                 key = keyDecoded,
                 length = n,
                 delim = delim,
@@ -146,6 +139,9 @@ internal data class Header(
                 hasLengthMarker = hasMarker,
                 inlineValues = right.takeIf { it.isNotEmpty() }
             )
+
+            ctx.debug(null, "Header.parseOrThrow → $hdr")
+            return hdr
         }
 
         private fun splitFields(s: String, delim: Delim): List<String> {

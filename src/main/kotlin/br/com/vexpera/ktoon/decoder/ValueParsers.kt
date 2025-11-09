@@ -11,25 +11,45 @@ internal object ValueParsers {
      * Interpreta um token como o valor mais apropriado (string, número, boolean, null, etc).
      */
     fun parsePrimitiveToken(token: String, ctx: ParseContext, documentDelimiter: Char): Any? {
+
+        ctx.debug(null, "parsePrimitiveToken: token='$token' delim='$documentDelimiter'")
+
         val t = token.trim()
-        if (t.isEmpty()) return "" // Inline arrays: token vazio → string vazia (§9.1)
+        if (t.isEmpty()) {
+            ctx.debug(null, "→ String vazia literal")
+            return ""
+        } // Inline arrays: token vazio → string vazia (§9.1)
 
         // String entre aspas
-        if (t.startsWith("\"")) return parseQuotedStringStrict(t)
+        if (t.startsWith("\"")) {
+            ctx.debug(null, "→ string = '$t'")
+            return parseQuotedStringStrict(t)
+        }
 
         // Literais reservados
-        if (t == "true") return true
-        if (t == "false") return false
-        if (t == "null") return null
+        if (t == "true") {
+            ctx.debug(null, "→ boolean literal = true")
+            return true
+        }
+        if (t == "false"){
+            ctx.debug(null, "→ boolean literal = false")
+            return false
+        }
+        if (t == "null") {
+            ctx.debug(null, "→ null literal")
+            return null
+        }
 
         // Números
         if (looksNumeric(t)) {
             // "05" → inválido como número (mantém string)
             if (Regex("^0\\d+$").matches(t)) return t
+            ctx.debug(null, "→ numeric $t")
             return parseNumber(t)
         }
 
         // Fallback: string literal não-aspada
+        ctx.debug(null, "→ fallback string = $t")
         return t
     }
 

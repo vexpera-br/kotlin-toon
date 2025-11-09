@@ -31,12 +31,11 @@ class Encoder(private val options: EncodeOptions) {
 
     private fun writeObject(map: Map<String, Any?>, level: Int) {
         for ((kAny, v) in map) {
-            val k = kAny.toString()
+            val k = kAny?.toString() ?: "-"  // ← trata chave null
             when (v) {
                 is List<*> -> {
                     val hom = homogenize(v)
                     if (hom != null) {
-                        // tabular array
                         val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
                         val cols = hom.first.joinToString(options.delimiter.symbol)
                         line(level, "$k$lengthPart{$cols}:")
@@ -47,14 +46,12 @@ class Encoder(private val options: EncodeOptions) {
                         continue
                     }
 
-                    // inline primitive array
                     val prim = v.all { it == null || it is String || it is Number || it is Boolean }
                     if (prim) {
                         val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
                         val joined = v.joinToString(options.delimiter.symbol) { renderCell(it) }
                         line(level, "$k$lengthPart: $joined")
                     } else {
-                        // expanded list (not tabular)
                         val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
                         line(level, "$k$lengthPart:")
                         for (item in v) line(level + 1, "- ${renderScalarOrInline(item)}")

@@ -2,6 +2,7 @@
 
 package br.com.vexpera.ktoon
 
+import br.com.vexpera.ktoon.decoder.DecodeException
 import br.com.vexpera.ktoon.decoder.DecoderOptions
 import br.com.vexpera.ktoon.decoder.Decoder
 import kotlin.reflect.KClass
@@ -22,14 +23,25 @@ object Toon {
         Encoder(options).encode(value)
 
     fun decode(input: String, options: DecoderOptions = DecoderOptions()): Any? =
-        Decoder(options).decode(input)
+        try {
+            Decoder(options).decode(input)
+        } catch (ex: DecodeException) {
+            throw ToonParseException(ex.message ?: ex.localizedMessage, ex)
+        }
 }
 
 enum class Delimiter(val symbol: String) { COMMA(","), TAB("\t"), PIPE("|") }
 
 // ---------- Utility ----------
 
-class ToonParseException(message: String) : RuntimeException(message)
+class ToonParseException : RuntimeException {
+
+    constructor(message: String) : super(message)
+
+    constructor(ex: Exception) : super(ex)
+
+    constructor(message: String, ex: Exception) : super(message, ex)
+}
 
 private fun firstUnquotedIndexOf(text: String, ch: Char): Int {
     var inQuotes = false
