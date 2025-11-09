@@ -4,7 +4,9 @@
 
 **kotlin-toon** is a 100% Kotlin implementation — spec-compliant and ready for production. Based on [the original spec from Johann Schopplich](https://github.com/toon-format/spec/blob/main/SPEC.md): 
 
+
 TOON is inspired by the readability of YAML and the tabular elegance of CSV, and specially useful to provide structured data for LLM APIs (because a verbose protocol generates more tokens, and tokens can be expensive).
+
 ---
 
 ## ✨ Why TOON?
