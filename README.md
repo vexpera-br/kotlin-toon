@@ -172,6 +172,3 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 MIT © 2025 [Cláudio Marcelo Silva](https://github.com/claudiomarcelo)
 ---
-
-Let me know if you'd like this saved into a file or if you want help preparing for publishing to Maven Central.
-```
