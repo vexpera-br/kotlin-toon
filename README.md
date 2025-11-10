@@ -1,23 +1,25 @@
 # 🧬 Kotlin TOON — Token-Oriented Object Notation
 
-**TOON (Token-Oriented Object Notation)** is a lightweight, human-readable data serialization format designed for shorten data exchanges, specially for LLMs.
-**Kotlin-toon** is the (unofficial, at least by now) port for Kotlin platform.
-Toon is inspired by YAML’s indentation and CSV’s tabular simplicity — ideal for configuration files, structured logs, or data exchange between systems.
+**TOON (Token-Oriented Object Notation)** is a lightweight, human-friendly data serialization format designed for concise, structured data — ideal for LLMs, configuration files, structured logs, and beyond.
+
+**kotlin-toon** is a 100% Kotlin implementation — spec-compliant and ready for production. Based on [the original spec from Johann Schopplich](https://github.com/toon-format/spec/blob/main/SPEC.md): 
+
+
+TOON is inspired by the readability of YAML and the tabular elegance of CSV, and specially useful to provide structured data for LLM APIs (because a verbose protocol generates more tokens, and tokens can be expensive).
 
 ---
 
 ## ✨ Why TOON?
 
-TOON was built to be **simple for humans**, **robust for machines**, and **idiomatic for Kotlin**:
-
 | Feature                       | Description                                         |
 | ----------------------------- | --------------------------------------------------- |
 | ✅ Indentation-based hierarchy | Uses spaces to define structure (like YAML)         |
-| ✅ Table syntax                | `users[3]{id,name,role}:` for compact tabular data  |
-| ✅ Fully typed API             | Converts directly into `data class` objects         |
-| ✅ No dependencies             | Pure Kotlin, no third-party libraries               |
+| ✅ Table syntax                | `users[3]{id,name}` for compact tabular records     |
+| ✅ Fully typed API             | Converts directly into Kotlin `data class`es        |
+| ✅ No dependencies             | Pure Kotlin, zero external libraries                |
 | ✅ Reversible encoding         | `decode → encode → decode` is lossless              |
-| ✅ Performance-tuned           | Linear complexity, optimized for JVM and KMP (soon) |
+| ✅ Performance-optimized       | Fast, linear parsing — ideal for JVM & Kotlin Multiplatform (soon) |
+| ✅ Spec-conformant             | Fully compliant with official TOON specification    |
 
 ---
 
@@ -31,15 +33,13 @@ repositories {
 dependencies {
     implementation("br.com.vexpera:kotlin-toon:1.0.0")
 }
-```
+````
 
 ---
 
 ## 🧉 Quick Start
 
 ### Example 1: Simple object
-
-**TOON file**
 
 ```toon
 user:
@@ -48,30 +48,18 @@ user:
   active: true
 ```
 
-**Kotlin code**
-
 ```kotlin
-import br.com.vexpera.ktoon.*
-
 data class User(val name: String, val age: Int, val active: Boolean)
 
-val text = """
-user:
-  name: "Alice"
-  age: 27
-  active: true
-""".trimIndent()
+val text = """ user:\n  name: "Alice"\n  age: 27\n  active: true """.trimIndent()
 
 val root = toon(text)
 val user = root["user"]!!.asObject<User>()
-
-println(user.name)  // Alice
-println(user.age)   // 27
 ```
 
 ---
 
-### Example 2: Nested tables
+### Example 2: Nested tabular data
 
 ```toon
 project:
@@ -80,28 +68,17 @@ project:
     1,Cláudio Marcelo Silva,lead
     2,Jane Doe,artist
     3,John Smith,engineer
-  assets[2]{id,path,size}:
-    1,"/models/player.obj",2048
-    2,"/textures/sky.png",1024
 ```
-
-**Parsing tables into data classes:**
 
 ```kotlin
 data class Author(val id: Int, val name: String, val role: String)
-data class Asset(val id: Int, val path: String, val size: Int)
 
-val project = toon(text)["project"]!!
-val authors = project["authors"]!!.asListOf<Author>()
-val assets  = project["assets"]!!.asListOf<Asset>()
-
-println(authors.first().name)  // Cláudio Marcelo Silva
-println(assets.last().path)    // /textures/sky.png
+val authors = toon(text)["project"]?.get("authors")?.asListOf<Author>()
 ```
 
 ---
 
-### Example 3: Encoding Kotlin objects back to TOON
+### Example 3: Encoding TOON
 
 ```kotlin
 val data = mapOf(
@@ -111,59 +88,14 @@ val data = mapOf(
     )
 )
 
-val text = Toon.encode(data)
-println(text)
+println(Toon.encode(data))
 ```
-
-Output:
 
 ```toon
 users[2]{id,name}:
   1,Alice
   2,Bob
 ```
-
----
-
-## 🧠 DSL Helpers
-
-You can work directly with the `ToonNode` DSL:
-
-```kotlin
-val version = toon(text)["project"]?.get("version")?.asInt()
-val authors: List<Author> = toon(text) { asListOf<Author>() }
-```
-
----
-
-## 🤪 Tests
-
-This library includes a full test suite covering:
-
-| Test              | Purpose                                  |
-| ----------------- | ---------------------------------------- |
-| `ToonSmokeTest`   | Basic syntax and simple decoding         |
-| `ToonComplexTest` | Deeply nested structures, tables, arrays |
-| `PerformanceTest` | Measures encode/decode throughput        |
-| `RoundtripTest`   | Verifies encoding-decoding symmetry      |
-
-Run locally:
-
-```bash
-./gradlew test
-```
-
----
-
-## ⚡ Performance
-
-| Operation                 | File            | Time   | Throughput     |
-| ------------------------- | --------------- | ------ | -------------- |
-| **Decode (human text)**   | 1 KB / 45 lines | ~39 ms | ~1,100 lines/s |
-| **Encode (machine text)** | 1 KB / 45 lines | ~8 ms  | ~5,000 lines/s |
-| **Roundtrip Decode**      | 1 KB / 45 lines | ~5 ms  | ~8,800 lines/s |
-
-Linear complexity — scales proportionally with file size.
 
 ---
 
@@ -174,38 +106,49 @@ val decoded = Toon.decode(text, DecodeOptions(strict = false))
 val encoded = Toon.encode(data, EncodeOptions(indent = 4, lengthMarker = true))
 ```
 
-* `strict`: allows irregular indentation
-* `lengthMarker`: adds `[n]` markers for array sizes in headers
-* `delimiter`: choose between `,`, `|`, or `\t`
+| Option         | Description                                  |                                 |
+| -------------- | -------------------------------------------- | ------------------------------- |
+| `strict`       | Enables strict indentation & structure rules |                                 |
+| `lengthMarker` | Adds `[n]` to headers to enforce row count   |                                 |
+| `delimiter`    | Use `,`, `                                   | `, or `\t` for table separation |
 
 ---
 
-## 🔜 Supported Types
+## 🧠 Kotlin DSL
 
-* Scalars (`String`, `Boolean`, `Number`, `null`)
-* Nested objects (`Map<String, Any?>`)
-* Lists and tables (`List<Map<String, Any?>>`)
-* Data classes (via reflection)
-* Escaped strings (`"Line 1\nLine 2"`)
-* Inline CSV tables
+```kotlin
+val name = toon(text)["user"]?.get("name")?.asString()
+val users: List<User> = toon(text) { asListOf<User>() }
+```
 
 ---
 
-## 🧰 License
+## 🧪 Test Suite
 
-MIT License © 2025 [Cláudio Marcelo Silva](https://github.com/claudiomarcelo)
+Fully tested with:
+
+* Conformance to official spec
+* Round-trip integrity
+* Tabular edge cases
+* Lenient and strict modes
+
+Run tests:
+
+```bash
+./gradlew test
+```
 
 ---
 
 ## 📦 Maven Central
 
-**Gradle (Kotlin DSL):**
+**Gradle:**
 
 ```kotlin
 implementation("br.com.vexpera:kotlin-toon:1.0.0")
 ```
 
-**Maven (XML):**
+**Maven:**
 
 ```xml
 <dependency>
@@ -217,7 +160,19 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 ---
 
-## 🔗 Links
+## COMMING SOON:
 
-* 📘 Documentation: [https://github.com/vexpera/kotlin-toon](https://github.com/vexpera/kotlin-toon)
-* 🧩 Issue Tracker: [https://github.com/vexpera/kotlin-toon/issues](https://github.com/vexpera/kotlin-toon/issues)
+KMP full support (JVM, Android, iOS, KotlinJS, Native)
+
+## 📚 Resources
+
+* [Specification](https://github.com/vexpera/kotlin-toon/blob/main/SPEC.md)
+* [Issue Tracker](https://github.com/vexpera/kotlin-toon/issues)
+* [Official TOON format](https://github.com/toon-data/toon)
+
+---
+
+## 🧰 License
+
+MIT © 2025 [Cláudio Marcelo Silva](https://github.com/claudiomarcelo)
+---
