@@ -162,6 +162,7 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 ## COMMING SOON:
 
+* _Path expansion_ and _key folding_ (new in spec 1,5)
 * KMP full support (JVM, Android, iOS, KotlinJS, Native)
 * kotlinx.serialization support
 
