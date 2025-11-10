@@ -1,24 +1,25 @@
 package br.com.vexpera.ktoon.decoder
 
 /**
- * Utilitário responsável por decodificar chaves de objetos e campos.
- * Aceita tanto chaves simples quanto chaves entre aspas.
+ *
+ * Utility responsible to decode keys of objects and field
+ * Accept simple keys as quoted keys as well
  */
 internal object Keys {
 
-    // Regex para validar chaves não-aspadas: letras, números, underscore e ponto.
+    // Regular expression to validate non-spade keys: letters, numbers, underscores, and periods.
     private val unquotedRegex = Regex("^[A-Za-z_][A-Za-z0-9_.]*$")
 
     /**
-     * Decodifica uma chave, verificando se precisa de parsing de string.
+     * Decodes a key, checking if string parsing is needed.
      */
     fun decodeKeyToken(token: String): String {
         val t = token.trim()
         return if (t.startsWith("\"")) {
-            // Chave entre aspas — usa o mesmo parser de strings de valor
+            // Key in quotes — uses the same string parser as value strings.
             ValueParsers.parseQuotedStringStrict(t)
         } else {
-            // Validação para nomes não-aspados
+            // Validation for non-quoted names
             if (!unquotedRegex.matches(t))
                 throw DecodeException("Invalid unquoted key: ${t.show()}")
             t

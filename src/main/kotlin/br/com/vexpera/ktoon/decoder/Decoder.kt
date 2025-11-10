@@ -5,16 +5,16 @@ package br.com.vexpera.ktoon.decoder
 import java.util.LinkedHashMap
 
 /**
- * Opções de decodificação.
+ * Decoder options
  */
 data class DecoderOptions(
     val strict: Boolean = true,
-    val debug: Boolean = true,
+    val debug: Boolean = false,
     val indentWidth: Int = 2
 )
 
 /**
- * Classe principal de decodificação do formato KTOON.
+ * Main Decoder class
  */
 class Decoder(private val options: DecoderOptions = DecoderOptions()) {
 

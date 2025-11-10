@@ -3,7 +3,7 @@ package br.com.vexpera.ktoon.decoder
 import kotlin.math.floor
 
 /**
- * Representa uma linha do documento após o pré-processamento léxico.
+ * This represents a line from the document after lexical preprocessing.
  */
 internal data class Line(
     val number: Int,
@@ -24,7 +24,7 @@ internal data class Line(
 }
 
 /**
- * Normaliza e quebra o texto de entrada em linhas.
+ * Normalizes and breaks the input text into lines.
  */
 internal object Lexer {
     fun lines(text: String): List<String> {
@@ -35,7 +35,7 @@ internal object Lexer {
 }
 
 /**
- * Leitor sequencial de linhas, responsável por rastrear profundidade, indentação e erros.
+ * Sequential line reader, responsible for tracking depth, indentation, and errors.
  */
 internal class LineScanner(
     private val rawLines: List<String>,
@@ -56,7 +56,7 @@ internal class LineScanner(
     fun next(): Line? =
         rawLines.getOrNull(index++)?.let { peekLineAt(index - 1) }
 
-    /** Retorna a próxima linha raiz não vazia ou lança se EOF */
+    /** Returns the next non-empty root row or throws if EOF. */
     fun nextNonBlankDepth0OrThrow(): Line {
         while (true) {
             val ln = next() ?: error("Unexpected EOF while expecting a root token")
@@ -72,7 +72,7 @@ internal class LineScanner(
         index = rawLines.size
     }
 
-    /** Constrói a linha analisada com validações e normalização */
+    /** Constructs the analyzed line with validations and normalization. */
     private fun peekLineAt(i: Int): Line {
         val raw = rawLines[i]
 

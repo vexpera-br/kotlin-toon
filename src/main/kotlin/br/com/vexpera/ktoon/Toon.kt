@@ -10,13 +10,13 @@ import kotlin.reflect.full.primaryConstructor
 
 /**
  * TOON – Token-Oriented Object Notation (JVM core)
- * Conformante à TOON Spec v1.4 (Johann Schopplich)
+ * Conforming to TOON Spec v1.4 (Johann Schopplich)
  *
- * - Objetos por indentação (key: value / key:)
- * - Arrays tabulares: key[#?N<delim?>]{f1<delim>f2}: linhas com <delim>
- * - Arrays inline de primitivos: key[#?N<delim?>]: v1<delim>v2...
- * - Strict mode valida indentação, tabs, contagens, larguras e linhas em branco
- * - Lenient mode relaxa indentação e ignora blanks internos em tabelas
+ * - Objects by indentation (key: value / key:)
+ * - Tabular arrays: key[#?N<delim?>]{f1<delim>f2}: rows with <delim>
+ * - Inline arrays of primitives: key[#?N<delim?>]: v1<delim>v2...
+ * - Strict mode validates indentation, tabs, counts, widths, and blank lines
+ * - Lenient mode relaxes indentation and ignores internal blanks in tables
  */
 object Toon {
     fun encode(value: Any?, options: EncodeOptions = EncodeOptions()): String =

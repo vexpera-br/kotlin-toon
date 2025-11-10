@@ -43,3 +43,6 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# Ignore local gradle properties (with secrets)
+gradle.properties

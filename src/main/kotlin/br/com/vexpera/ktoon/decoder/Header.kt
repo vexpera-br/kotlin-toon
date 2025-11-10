@@ -1,7 +1,7 @@
 package br.com.vexpera.ktoon.decoder
 
 /**
- * Delimitadores válidos para arrays tabulares e inline (§9).
+ * Valid delimiters to tabular arrays and inline (§9).
  */
 internal enum class Delim(val ch: Char) {
     COMMA(','), TAB('\t'), PIPE('|');
@@ -18,7 +18,7 @@ internal enum class Delim(val ch: Char) {
 }
 
 /**
- * Representa um cabeçalho de array, ex:
+ * Header to array, ex:
  * - key[3]{a,b,c}:
  * - [#2|]:
  * - key[4]:

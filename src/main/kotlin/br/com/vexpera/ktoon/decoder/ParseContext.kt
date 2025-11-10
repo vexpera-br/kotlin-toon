@@ -1,15 +1,15 @@
 package br.com.vexpera.ktoon.decoder
 
 /**
- * Contexto compartilhado entre os estágios de parsing.
- * Guarda as opções do decoder e fornece utilitários de debug.
+ * Shared context between parsing stages.
+ * Stores decoder options and provides debugging utilities.
  */
 internal class ParseContext(val options: DecoderOptions) {
 
-    /** Delimitador padrão de documento — influencia quoting (§11). */
+    /** Standard document delimiter — influences quoting (§11). */
     val documentDelimiter: Char = ','
 
-    /** Log de debug, ativo apenas se [DecoderOptions.debug] for true. */
+    /** Debug log, active only if [DecoderOptions.debug] is true.. */
     fun debug(line: Line?, message: String) {
         if (options.debug) {
             val at = line?.let { " [${it.number}]" } ?: ""
@@ -19,18 +19,18 @@ internal class ParseContext(val options: DecoderOptions) {
 }
 
 /**
- * Exceção padrão para erros de decodificação.
+ * Standard exception for decoding errors.
  */
 class DecodeException(message: String) : RuntimeException(message)
 
 /**
- * Lança um [DecodeException] com informação contextual da linha.
+ * Throws a [DecodeException] with contextual line information.
  */
 internal fun parseError(ln: Line, msg: String): Nothing =
     throw DecodeException("Line ${ln.number}: $msg. Line: ${ln.raw.show()}")
 
 /**
- * Retorna uma string segura para exibição em mensagens de erro.
+ * Returns a string that is safe to display in error messages.
  */
 internal fun String.show(max: Int = 200): String =
     if (length <= max) this else take(max) + "…"

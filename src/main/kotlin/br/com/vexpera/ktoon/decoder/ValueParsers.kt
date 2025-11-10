@@ -3,12 +3,12 @@ package br.com.vexpera.ktoon.decoder
 import java.math.BigDecimal
 
 /**
- * Parser de valores primitivos e numéricos (§4, §9.1, §11).
+ * Parser for primitive and numeric values (§4, §9.1, §11).
  */
 internal object ValueParsers {
 
     /**
-     * Interpreta um token como o valor mais apropriado (string, número, boolean, null, etc).
+     * Interprets a token as the most appropriate value (string, number, boolean, null, etc).
      */
     fun parsePrimitiveToken(token: String, ctx: ParseContext, documentDelimiter: Char): Any? {
 
@@ -16,17 +16,17 @@ internal object ValueParsers {
 
         val t = token.trim()
         if (t.isEmpty()) {
-            ctx.debug(null, "→ String vazia literal")
+            ctx.debug(null, "→ Empty string literal")
             return ""
-        } // Inline arrays: token vazio → string vazia (§9.1)
+        } // Inline arrays: empty token → empty string (§9.1)
 
-        // String entre aspas
+        // String inside quotes
         if (t.startsWith("\"")) {
             ctx.debug(null, "→ string = '$t'")
             return parseQuotedStringStrict(t)
         }
 
-        // Literais reservados
+        // Reserved literals
         if (t == "true") {
             ctx.debug(null, "→ boolean literal = true")
             return true
@@ -40,33 +40,33 @@ internal object ValueParsers {
             return null
         }
 
-        // Números
+        // Numbers
         if (looksNumeric(t)) {
-            // "05" → inválido como número (mantém string)
+            // "05" → invalid as number (keeps string)
             if (Regex("^0\\d+$").matches(t)) return t
             ctx.debug(null, "→ numeric $t")
             return parseNumber(t)
         }
 
-        // Fallback: string literal não-aspada
+        // Fallback: unquoted string literal
         ctx.debug(null, "→ fallback string = $t")
         return t
     }
 
     /**
-     * Detecta se a string parece um número válido.
+     * Detects whether the string looks like a valid number.
      */
     private fun looksNumeric(s: String): Boolean =
         Regex("^-?\\d+(?:\\.\\d+)?(?:[eE][+\\-]?\\d+)?$").matches(s)
 
     /**
-     * Faz o parsing seguro de números (Long, BigDecimal ou Double).
+     * Safely parses numbers (Long, BigDecimal or Double).
      */
     private fun parseNumber(s: String): Number {
-        // Tenta como Long primeiro
+        // Try as Long first
         s.toLongOrNull()?.let { return it }
 
-        // Depois tenta BigDecimal
+        // Then try BigDecimal
         return try {
             val bd = BigDecimal(s)
             val stripped = bd.stripTrailingZerosIfPossible()
@@ -77,12 +77,12 @@ internal object ValueParsers {
                 stripped
             }
         } catch (e: NumberFormatException) {
-            throw IllegalArgumentException("Valor inválido para número: '$s'", e)
+            throw IllegalArgumentException("Invalid value for number: '$s'", e)
         }
     }
 
     /**
-     * Faz parsing rigoroso de uma string entre aspas.
+     * Strictly parses a quoted string.
      */
     fun parseQuotedStringStrict(tok: String): String {
         if (tok.length < 2 || !tok.startsWith("\"") || !tok.endsWith("\""))
@@ -118,13 +118,13 @@ internal object ValueParsers {
 }
 
 /**
- * Extensão: remove zeros à direita de um BigDecimal de forma segura.
+ * Extension: safely removes trailing zeros from a BigDecimal.
  */
 internal fun BigDecimal.stripTrailingZerosIfPossible(): BigDecimal =
     try { this.stripTrailingZeros() } catch (_: Throwable) { this }
 
 /**
- * Extensão: tenta converter um BigDecimal exato para Long sem lançar exceção.
+ * Extension: tries to convert an exact BigDecimal to Long without throwing an exception.
  */
 internal fun BigDecimal.toLongExactOrNull(): Long? =
     try { this.longValueExact() } catch (_: ArithmeticException) { null }

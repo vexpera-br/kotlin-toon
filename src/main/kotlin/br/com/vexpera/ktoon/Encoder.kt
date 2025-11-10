@@ -31,7 +31,7 @@ class Encoder(private val options: EncodeOptions) {
 
     private fun writeObject(map: Map<String, Any?>, level: Int) {
         for ((kAny, v) in map) {
-            val k = kAny?.toString() ?: "-"  // ← trata chave null
+            val k = kAny?.toString() ?: "-"  // ← treat key as null
             when (v) {
                 is List<*> -> {
                     val hom = homogenize(v)
@@ -92,8 +92,8 @@ class Encoder(private val options: EncodeOptions) {
     }
 
     /**
-     * Se a lista for homogênea de mapas com as mesmas chaves na mesma ordem,
-     * retorna (colunas, linhas) para serializar como tabela.
+     * If the list is homogeneous with maps having the same keys in the same order,
+     * returns (columns, rows) for serialization as a table.
      */
     private fun homogenize(list: List<Any?>): Pair<List<String>, List<List<Any?>>>? {
         if (list.isEmpty()) return null
@@ -142,19 +142,19 @@ class Encoder(private val options: EncodeOptions) {
 }
 
 /**
- * Escapa caracteres especiais para uso seguro em TOON.
+ * Escapes special characters for safe use in TOON.
  *
- * @param s Texto original.
- * @param quoteIfNeeded Quando true, envolve em aspas se houver espaços, delimitadores, colons, tabs etc.
- * @param forCell Quando true, aplica escape leve para uso em células de tabelas (não adiciona aspas).
+ * @param s Original text.
+ * @param quoteIfNeeded When true, wraps in quotes if there are spaces, delimiters, colons, tabs, etc.
+ * @param forCell When true, applies light escaping for use inside table cells (does not add quotes).
  */
 private fun escape(s: String, quoteIfNeeded: Boolean = true, forCell: Boolean = false): String {
-    if (s.isEmpty()) return "\"\"" // strings vazias sempre devem ser citadas
+    if (s.isEmpty()) return "\"\"" // empty strings must always be quoted
 
     val numericLike = s.matches(Regex("^-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$"))
     val leadingZero = s.matches(Regex("^0\\d+$"))
 
-    // Regras de citação por §7.2
+    // Quoting rules per §7.2
     val needsQuote = quoteIfNeeded && (
             s.first().isWhitespace() ||
                     s.last().isWhitespace() ||
@@ -186,7 +186,7 @@ private fun escape(s: String, quoteIfNeeded: Boolean = true, forCell: Boolean = 
 
     return when {
         needsQuote -> "\"$body\""
-        forCell -> body.replace(",", "\\,") // célula tabular escapa vírgula sem citar
+        forCell -> body.replace(",", "\\,") // table cell escapes comma without quoting
         else -> body
     }
 }

@@ -1,6 +1,9 @@
 plugins {
     kotlin("jvm") version "2.0.21"
     `maven-publish`
+    signing
+    id("io.codearte.nexus-staging") version "0.30.0"
+    id("org.jetbrains.dokka") version "1.9.10"
 }
 
 group = "br.com.vexpera"
@@ -13,14 +16,26 @@ repositories {
 
 dependencies {
     implementation(kotlin("reflect"))
-    implementation("com.google.code.gson:gson:2.11.0")
     testImplementation(kotlin("test"))
+}
+
+tasks.register<Jar>("sourcesJar") {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.get().allSource)
+}
+
+tasks.register<Jar>("javadocJar") {
+    dependsOn("dokkaHtml")
+    archiveClassifier.set("javadoc")
+    from(buildDir.resolve("dokka"))
 }
 
 publishing {
     publications {
         create<MavenPublication>("toon") {
             from(components["kotlin"])
+            artifact(tasks["sourcesJar"])
+            artifact(tasks["javadocJar"])
             groupId = "br.com.vexpera"
             artifactId = "kotlin-toon"
             version = "1.0.0"
@@ -63,3 +78,13 @@ publishing {
     }
 }
 
+signing {
+    useGpgCmd()
+    sign(publishing.publications["toon"])
+}
+
+nexusStaging {
+    packageGroup = "br.com.vexpera"
+    username = System.getenv("OSSRH_USERNAME")
+    password = System.getenv("OSSRH_PASSWORD")
+}

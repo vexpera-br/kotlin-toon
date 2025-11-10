@@ -1,18 +1,18 @@
 package br.com.vexpera.ktoon.decoder
 
 /**
- * Define o tipo de estrutura raiz do documento (§5 da spec KTOON).
+ * Defines the root document structure type (§5 of the KTOON spec).
  */
 internal enum class RootForm {
-    /** Documento vazio → {} implícito */
+    /** Empty document → implicit {} */
     EMPTY_OBJECT,
 
-    /** Documento de um único valor primitivo */
+    /** Single-value primitive document */
     PRIMITIVE,
 
-    /** Documento cuja raiz é um array (ex: [#3]: ...) */
+    /** Document whose root is an array (e.g., [#3]: ...) */
     ROOT_ARRAY,
 
-    /** Documento cuja raiz é um objeto */
+    /** Document whose root is an object */
     ROOT_OBJECT
 }

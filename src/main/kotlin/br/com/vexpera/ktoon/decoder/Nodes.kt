@@ -16,40 +16,40 @@ internal object Nodes {
         protected val handlers: MutableList<Handler> = mutableListOf()
 
         open fun consume(scanner: LineScanner, expectedIndent: Int, ctx: ParseContext): Any? {
-            ctx.debug(scanner.peek() ?: Line.empty(), "Entrando em ${this::class.simpleName} (indent=$expectedIndent, strict=${ctx.options.strict})")
+            ctx.debug(scanner.peek() ?: Line.empty(), "Entering ${this::class.simpleName} (indent=$expectedIndent, strict=${ctx.options.strict})")
             var result: Any? = null
             while (true) {
                 val ln = scanner.peek() ?: break
-                ctx.debug(ln, "→ Processando linha '${ln.raw}' (depth=${ln.depth})")
+                ctx.debug(ln, "→ Processing line '${ln.raw}' (depth=${ln.depth})")
 
-                // Ajuste: indentação leniente aceita níveis mais profundos
+                // Adjustment: lenient indentation accepts deeper levels
                 if (ctx.options.strict && ln.depth != expectedIndent) break
                 if (!ctx.options.strict && ln.depth < expectedIndent) break
 
                 if (ln.content.trimStart().startsWith("#")) {
-                    ctx.debug(ln, "Ignorando comentário")
+                    ctx.debug(ln, "Ignoring comment")
                     scanner.next()
                     continue
                 }
                 if (ln.content.isEmpty()) {
-                    ctx.debug(ln, "Linha em branco ignorada")
+                    ctx.debug(ln, "Blank line ignored")
                     scanner.next()
                     continue
                 }
                 if (!tryHandle(ln, scanner, ctx)) {
-                    ctx.debug(ln, "→ Nenhum handler aceitou a linha")
+                    ctx.debug(ln, "→ No handler accepted the line")
                     break
                 }
                 result = currentValue()
             }
-            ctx.debug(scanner.peek() ?: Line.empty(), "Saindo de ${this::class.simpleName} com valor = $result")
+            ctx.debug(scanner.peek() ?: Line.empty(), "Exiting ${this::class.simpleName} with value = $result")
             return result ?: currentValue()
         }
 
         protected fun tryHandle(ln: Line, scanner: LineScanner, ctx: ParseContext): Boolean {
             for (h in handlers) {
                 if (h.canHandle(ln, ctx)) {
-                    ctx.debug(ln, "Handler ${h::class.simpleName} aceitou a linha")
+                    ctx.debug(ln, "Handler ${h::class.simpleName} accepted the line")
                     return h.handle(this, ln, scanner, ctx)
                 }
             }
@@ -79,7 +79,7 @@ internal object Nodes {
                 scanner.next()
                 val after = ln.content.trimStart().substringAfter("-:").trimStart()
                 val value = ValueParsers.parsePrimitiveToken(after, ctx, ctx.documentDelimiter)
-                ctx.debug(ln, "Tratando -: como chave nula → $value")
+                ctx.debug(ln, "Handling -: as null key → $value")
                 map[null] = value
                 return true
             }
@@ -95,7 +95,7 @@ internal object Nodes {
 
             override fun handle(node: Node, ln: Line, scanner: LineScanner, ctx: ParseContext): Boolean {
                 scanner.next()
-                ctx.debug(ln, "Processando Header")
+                ctx.debug(ln, "Processing Header")
                 val hdr = Header.parseOrThrow(ln.content, ctx)
                 val key = hdr.key ?: parseError(ln, "Header at object level must have a key")
 
@@ -124,14 +124,14 @@ internal object Nodes {
 
             override fun handle(node: Node, ln: Line, scanner: LineScanner, ctx: ParseContext): Boolean {
                 scanner.next()
-                ctx.debug(ln, "Processando chave:valor primitivo")
+                ctx.debug(ln, "Processing primitive key:value")
                 val colon = ln.content.firstUnquotedColonIndex()
                 val kTok = ln.content.substring(0, colon).trim()
                 val vTok = ln.content.substring(colon + 1).trimStart()
                 val key = Keys.decodeKeyToken(kTok)
 
                 if (vTok.isEmpty()) {
-                    ctx.debug(ln, "Valor está vazio → criando objeto filho")
+                    ctx.debug(ln, "Value is empty → creating child object")
                     val child = ObjectNode(key, baseIndent + 1)
                     val v = child.consume(scanner, baseIndent + 1, ctx)
                     map[key] = v
@@ -159,7 +159,7 @@ internal object Nodes {
 
             override fun handle(node: Node, ln: Line, scanner: LineScanner, ctx: ParseContext): Boolean {
                 scanner.next()
-                ctx.debug(ln, "Processando objeto aninhado")
+                ctx.debug(ln, "Processing nested object")
                 val key = Keys.decodeKeyToken(
                     ln.content.substring(0, ln.content.firstUnquotedColonIndex()).trim()
                 )
@@ -196,22 +196,22 @@ internal object Nodes {
         override fun consume(scanner: LineScanner, headerIndent: Int, ctx: ParseContext): Any? {
             val rowIndent = headerIndent + 1
             var rowCount = 0
-            ctx.debug(scanner.peek() ?: Line.empty(), "Iniciando parsing de tabela com indent=$rowIndent")
+            ctx.debug(scanner.peek() ?: Line.empty(), "Starting table parsing with indent=$rowIndent")
 
             while (true) {
                 val ln = scanner.peek() ?: break
 
-                // Ignora comentários
+                // Ignore comments
                 if (ln.content.startsWith("#")) {
                     scanner.next()
                     continue
                 }
 
-                // Trata linhas em branco
+                // Handle blank lines
                 if (ln.content.isEmpty()) {
-                    ctx.debug(ln, "Linha em branco detectada")
+                    ctx.debug(ln, "Blank line detected")
                     if (ctx.options.strict) {
-                        ctx.debug(ln, "Falha: linha em branco em modo estrito")
+                        ctx.debug(ln, "Failure: blank line in strict mode")
                         parseError(ln, "Blank line inside tabular rows is not allowed in strict mode")
                     } else {
                         scanner.next()
@@ -219,26 +219,26 @@ internal object Nodes {
                     }
                 }
 
-                // Detecção de fim de tabela
+                // End of table detection
                 if (ln.depth < rowIndent) {
                     if (ctx.options.strict && rowCount < hdr.length) {
-                        ctx.debug(ln, "Fim prematuro: esperava ${hdr.length}, tinha $rowCount")
+                        ctx.debug(ln, "Premature end: expected ${hdr.length}, had $rowCount")
                         parseError(ln, "Premature end of tabular rows: expected ${hdr.length}, got $rowCount")
                     }
                     break
                 }
 
                 if (ctx.options.strict && ln.depth > rowIndent) {
-                    ctx.debug(ln, "Indentação inesperada dentro da tabela")
+                    ctx.debug(ln, "Unexpected indentation inside table")
                     parseError(ln, "Unexpected indentation inside tabular rows")
                 }
 
                 if (ctx.options.strict && rowCount >= hdr.length) {
-                    ctx.debug(ln, "Excesso de linhas na tabela")
+                    ctx.debug(ln, "Excess rows in table")
                     parseError(ln, "Too many tabular rows: expected ${hdr.length}")
                 }
 
-                // Consome linha válida
+                // Consume valid line
                 val line = scanner.next() ?: break
                 val parts = Splitters.splitRespectingQuotes(line.content, hdr.delim.ch)
 
@@ -255,7 +255,7 @@ internal object Nodes {
                     obj[f] = v
                 }
 
-                ctx.debug(line, "Linha tabular parseada → $obj")
+                ctx.debug(line, "Parsed tabular line → $obj")
                 rows += obj
                 rowCount++
             }
@@ -274,13 +274,13 @@ internal object Nodes {
         override fun consume(scanner: LineScanner, headerIndent: Int, ctx: ParseContext): Any? {
             val entryIndent = headerIndent + 1
             var itemCount = 0
-            ctx.debug(scanner.peek() ?: Line.empty(), "Iniciando parsing de lista indent=$entryIndent")
+            ctx.debug(scanner.peek() ?: Line.empty(), "Starting list parsing indent=$entryIndent")
 
             while (true) {
                 val ln = scanner.peek() ?: break
 
                 if (ln.content.isEmpty()) {
-                    ctx.debug(ln, "Linha em branco ignorada")
+                    ctx.debug(ln, "Blank line ignored")
                     scanner.next()
                     continue
                 }
@@ -299,7 +299,7 @@ internal object Nodes {
 
                 val colon = rest.firstUnquotedColonIndex()
 
-                // Correção: rejeita mapas em listas no modo strict
+                // Fix: reject maps in lists under strict mode
                 if (ctx.options.strict && (rest.startsWith("[") || rest.startsWith("{") || colon >= 0))
                     parseError(ln, "List item maps are not supported in strict mode")
 
@@ -318,7 +318,7 @@ internal object Nodes {
                     }
                 }
 
-                ctx.debug(ln, "Item de lista parseado → $item")
+                ctx.debug(ln, "Parsed list item → $item")
                 items += item
                 itemCount++
             }

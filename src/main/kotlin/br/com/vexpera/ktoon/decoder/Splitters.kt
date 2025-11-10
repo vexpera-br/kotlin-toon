@@ -1,14 +1,16 @@
 package br.com.vexpera.ktoon.decoder
 
 /**
- * Utilitários para dividir strings respeitando aspas e escapes.
+ * Utilities for splitting strings while respecting quotation marks and escapes.
  */
 internal object Splitters {
 
     /**
-     * Divide uma string respeitando aspas duplas e escapes.
-     * Exemplo:
-     *  splitRespectingQuotes("a,\"b,c\",d", ',') → ["a", "\"b,c\"", "d"]
+     * Split a string respecting double quotes and escapes.
+     *
+     * * Example:
+     *
+     * * splitRespectingQuotes("a,\"b,c\",d", ',') → ["a", "\"b,c\"", "d"]
      */
     fun splitRespectingQuotes(s: String, delim: Char): List<String> {
         val out = mutableListOf<String>()
@@ -55,7 +57,7 @@ internal object Splitters {
 }
 
 /**
- * Encontra o primeiro índice de um caractere fora de aspas.
+ * Finds the first index of a character outside of quotation marks.
  */
 internal fun String.firstUnquotedIndexOf(ch: Char): Int {
     var inQuotes = false
@@ -78,7 +80,7 @@ internal fun String.firstUnquotedIndexOf(ch: Char): Int {
 }
 
 /**
- * Encontra o índice do primeiro ':' fora de aspas (usado para key-value parsing).
+ * Finds the index of the first ':' outside of quotation marks (used for key-value parsing).
  */
 internal fun String.firstUnquotedColonIndex(): Int {
     var inQuotes = false
