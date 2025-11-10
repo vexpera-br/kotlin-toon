@@ -15,7 +15,7 @@ TOON is inspired by the readability of YAML and the tabular elegance of CSV, and
 | ----------------------------- | --------------------------------------------------- |
 | ✅ Indentation-based hierarchy | Uses spaces to define structure (like YAML)         |
 | ✅ Table syntax                | `users[3]{id,name}` for compact tabular records     |
-| ✅ Fully typed API             | Converts directly into Kotlin `data class`es        |
+| ✅ Fully typed API             | Converts directly into Kotlin `data class`es (soon) |
 | ✅ No dependencies             | Pure Kotlin, zero external libraries                |
 | ✅ Reversible encoding         | `decode → encode → decode` is lossless              |
 | ✅ Performance-optimized       | Fast, linear parsing — ideal for JVM & Kotlin Multiplatform (soon) |
