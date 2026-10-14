@@ -93,8 +93,8 @@ internal class LineScanner(
                 parseError(i, raw, "Trailing spaces are not allowed")
         }
 
-        // LENIENT MODE — apenas loga, não quebra
-        else {
+        // LENIENT MODE — não quebra; avisa só com debug ligado (o stdout é do aplicativo, não da biblioteca)
+        else if (options.debug) {
             if (hasTabs) {
                 println("[WARN line ${i + 1}] Tab found in indentation (lenient mode, ignoring)")
             }
