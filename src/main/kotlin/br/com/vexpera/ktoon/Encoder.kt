@@ -22,10 +22,10 @@ class Encoder(private val options: EncodeOptions) {
             null -> sb.append("null\n")
             is Map<*, *> -> writeObject(v as Map<String, Any?>, level)
             is List<*> -> writeList(v as List<Any?>, level)
-            is String -> sb.append(escape(v)).append('\n')
+            is String -> sb.append(escape(v, options.delimiter)).append('\n')
             is Number -> sb.append(formatCanonicalNumber(v)).append('\n')
             is Boolean -> sb.append(v.toString()).append('\n')
-            else -> sb.append(escape(v.toString())).append('\n')
+            else -> sb.append(escape(v.toString(), options.delimiter)).append('\n')
         }
     }
 
@@ -108,10 +108,10 @@ class Encoder(private val options: EncodeOptions) {
 
     private fun renderScalarOrInline(v: Any?): String = when (v) {
         null -> "null"
-        is String -> escape(v)
+        is String -> escape(v, options.delimiter)
         is Number -> formatCanonicalNumber(v)
         is Boolean -> v.toString()
-        else -> escape(v.toString())
+        else -> escape(v.toString(), options.delimiter)
     }
 
     // Cells and inline array values follow the same quoting rules as object values: an unquoted cell
@@ -147,18 +147,22 @@ class Encoder(private val options: EncodeOptions) {
 /**
  * Escapes special characters for safe use in TOON.
  *
+ * Wraps the text in quotes when it would otherwise decode to a different value (§7.2): leading/trailing
+ * whitespace, literals, numbers, structural characters, control characters or the delimiter in use.
+ * The encoder has a single delimiter, so the document delimiter (object values) and the active delimiter
+ * (table cells, inline arrays) are the same; other delimiters do not require quotes (§11).
+ *
  * @param s Original text.
- * @param quoteIfNeeded When true, wraps in quotes if the text would otherwise decode to a different value
- * (leading/trailing whitespace, literals, numbers, structural characters, any delimiter or control characters).
+ * @param delimiter The delimiter in use.
  */
-private fun escape(s: String, quoteIfNeeded: Boolean = true): String {
+private fun escape(s: String, delimiter: Delimiter): String {
     if (s.isEmpty()) return "\"\"" // empty strings must always be quoted
 
     val numericLike = s.matches(Regex("^-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$"))
     val leadingZero = s.matches(Regex("^0\\d+$"))
 
     // Quoting rules per §7.2
-    val needsQuote = quoteIfNeeded && (
+    val needsQuote = (
             s.first().isWhitespace() ||
                     s.last().isWhitespace() ||
                     s == "true" || s == "false" || s == "null" ||
@@ -169,8 +173,7 @@ private fun escape(s: String, quoteIfNeeded: Boolean = true): String {
                     s.contains('[') || s.contains(']') ||
                     s.contains('{') || s.contains('}') ||
                     s.any { it < ' ' } ||
-                    s.contains('|') ||
-                    s.contains(',') ||
+                    s.contains(delimiter.symbol) ||
                     s == "-" || s.startsWith('-')
             )
 
