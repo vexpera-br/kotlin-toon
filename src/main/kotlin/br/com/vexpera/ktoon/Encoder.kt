@@ -8,105 +8,111 @@ data class EncodeOptions(
 
 // ---------- Encoder ----------
 
+/**
+ * Encoder for TOON spec v1.4 (§2–§12): objects by indentation, inline primitive arrays, tabular arrays of uniform
+ * primitive objects (§9.3), and the expanded list form for everything else (§9.2, §9.4), with objects as list items
+ * placing their first field on the hyphen line (§10). Keys are quoted when they are not identifiers (§7.3).
+ */
 class Encoder(private val options: EncodeOptions) {
     private val sb = StringBuilder()
     private val indentUnit = " ".repeat(options.indent)
 
     fun encode(value: Any?): String {
-        writeValue(value, 0)
-        return sb.toString().trimEnd()
+        when (value) {
+            is Map<*, *> -> writeObject(value, 0)
+            is List<*> -> writeArray(prefix = "", key = null, list = value, level = 0, bodyLevel = 1)
+            else -> line(0, renderPrimitive(value))
+        }
+        return sb.toString().trimEnd('\n')
     }
 
-    private fun writeValue(v: Any?, level: Int) {
-        when (v) {
-            null -> sb.append("null\n")
-            is Map<*, *> -> writeObject(v as Map<String, Any?>, level)
-            is List<*> -> writeList(v as List<Any?>, level)
-            is String -> sb.append(escape(v, options.delimiter)).append('\n')
-            is Number -> sb.append(formatCanonicalNumber(v)).append('\n')
-            is Boolean -> sb.append(v.toString()).append('\n')
-            else -> sb.append(escape(v.toString(), options.delimiter)).append('\n')
+    // ---------- Objects ----------
+
+    private fun writeObject(map: Map<*, *>, level: Int) {
+        for ((k, v) in map) writeField(prefix = "", key = k, value = v, level = level, childLevel = level + 1)
+    }
+
+    /**
+     * Writes one `key: value` field on a line at [level], after [prefix] ("- " for the first field of a list item).
+     * Nested object fields go to [childLevel]; array rows and items go to [level] + 1.
+     */
+    private fun writeField(prefix: String, key: Any?, value: Any?, level: Int, childLevel: Int) {
+        val k = renderKey(key)
+        when (value) {
+            is Map<*, *> -> {
+                line(level, "$prefix$k:")
+                writeObject(value, childLevel)
+            }
+            is List<*> -> writeArray(prefix, k, value, level, bodyLevel = level + 1)
+            else -> line(level, "$prefix$k: ${renderPrimitive(value)}")
         }
     }
 
-    private fun writeObject(map: Map<String, Any?>, level: Int) {
-        for ((kAny, v) in map) {
-            val k = kAny?.toString() ?: "-"  // ← treat key as null
-            when (v) {
-                is List<*> -> {
-                    val hom = homogenize(v)
-                    if (hom != null) {
-                        val lengthPart = lengthPart(v.size)
-                        val cols = hom.first.joinToString(options.delimiter.symbol)
-                        line(level, "$k$lengthPart{$cols}:")
-                        val delim = options.delimiter.symbol
-                        for (row in hom.second) {
-                            line(level + 1, row.joinToString(delim) { renderCell(it) })
-                        }
-                        continue
+    // ---------- Arrays (§9) ----------
+
+    private fun writeArray(prefix: String, key: String?, list: List<*>, level: Int, bodyLevel: Int) {
+        val k = key ?: ""
+        val delim = options.delimiter.symbol
+        val length = lengthPart(list.size)
+        when {
+            list.isEmpty() -> line(level, "$prefix$k$length:")
+            list.all { isPrimitive(it) } ->
+                line(level, "$prefix$k$length: " + list.joinToString(delim) { renderPrimitive(it) })
+            else -> {
+                val columns = tabularColumns(list)
+                if (columns != null) {
+                    line(level, "$prefix$k$length{" + columns.joinToString(delim) { renderKey(it) } + "}:")
+                    for (item in list) {
+                        val row = item as Map<*, *>
+                        line(bodyLevel, columns.joinToString(delim) { renderPrimitive(row[it]) })
                     }
-
-                    val prim = v.all { it == null || it is String || it is Number || it is Boolean }
-                    if (prim) {
-                        val lengthPart = lengthPart(v.size)
-                        val joined = v.joinToString(options.delimiter.symbol) { renderCell(it) }
-                        line(level, "$k$lengthPart: $joined")
-                    } else {
-                        val lengthPart = lengthPart(v.size)
-                        line(level, "$k$lengthPart:")
-                        for (item in v) line(level + 1, "- ${renderScalarOrInline(item)}")
-                    }
+                } else {
+                    line(level, "$prefix$k$length:")
+                    for (item in list) writeListItem(item, bodyLevel)
                 }
-
-                is Map<*, *> -> {
-                    line(level, "$k:")
-                    @Suppress("UNCHECKED_CAST")
-                    writeObject(v as Map<String, Any?>, level + 1)
-                }
-
-                else -> line(level, "$k: ${renderScalarOrInline(v)}")
             }
         }
     }
 
-    // Root arrays use a header without a key (TOON spec §5): "[N]{f1,f2}:", "[N]: v1,v2" or "[N]:" + "- item" lines.
-    private fun writeList(list: List<Any?>, level: Int) {
-        val lengthPart = lengthPart(list.size)
-        val hom = homogenize(list)
-        if (hom != null) {
-            val cols = hom.first.joinToString(options.delimiter.symbol)
-            line(level, "$lengthPart{$cols}:")
-            val delim = options.delimiter.symbol
-            for (row in hom.second) line(level + 1, row.joinToString(delim) { renderCell(it) })
-            return
-        }
-
-        val prim = list.all { it == null || it is String || it is Number || it is Boolean }
-        if (prim) {
-            val joined = list.joinToString(options.delimiter.symbol) { renderCell(it) }
-            line(level, "$lengthPart: $joined")
-        } else {
-            line(level, "$lengthPart:")
-            for (item in list) line(level + 1, "- ${renderScalarOrInline(item)}")
+    /** One element of the expanded list form (§9.4, §10). */
+    private fun writeListItem(item: Any?, level: Int) {
+        when (item) {
+            is List<*> -> writeArray(prefix = "- ", key = null, list = item, level = level, bodyLevel = level + 1)
+            is Map<*, *> -> {
+                if (item.isEmpty()) {
+                    line(level, "-")
+                    return
+                }
+                val entries = item.entries.toList()
+                val first = entries.first()
+                // First field on the hyphen line: its nested object fields at +2, its array rows/items at +1;
+                // the remaining fields at +1.
+                writeField(prefix = "- ", key = first.key, value = first.value, level = level, childLevel = level + 2)
+                for (e in entries.drop(1)) writeField(prefix = "", key = e.key, value = e.value, level = level + 1, childLevel = level + 2)
+            }
+            else -> line(level, "- ${renderPrimitive(item)}")
         }
     }
 
     /**
-     * If the list is homogeneous with maps having the same keys in the same order,
-     * returns (columns, rows) for serialization as a table.
+     * Tabular detection (§9.3): every element is a non-empty object, all with the same set of keys (order may vary)
+     * and only primitive values. Returns the columns in the first object's key order, or null.
      */
-    private fun homogenize(list: List<Any?>): Pair<List<String>, List<List<Any?>>>? {
-        if (list.isEmpty()) return null
-        val maps = list.filterIsInstance<Map<*, *>>()
-        if (maps.size != list.size) return null
-        val firstKeys = maps.first().keys.map { it.toString() }
-        if (firstKeys.isEmpty()) return null
-        if (maps.any { it.keys.map { k -> k.toString() } != firstKeys }) return null
-        val rows = maps.map { m -> firstKeys.map { k -> m[k] } }
-        return firstKeys to rows
+    private fun tabularColumns(list: List<*>): List<Any?>? {
+        if (list.isEmpty() || list.any { it !is Map<*, *> || it.isEmpty() }) return null
+        val maps = list.map { it as Map<*, *> }
+        val columns = maps.first().keys.toList()
+        val keySet = columns.toSet()
+        if (maps.any { it.keys != keySet }) return null
+        if (maps.any { m -> m.values.any { !isPrimitive(it) } }) return null
+        return columns
     }
 
-    private fun renderScalarOrInline(v: Any?): String = when (v) {
+    private fun isPrimitive(v: Any?): Boolean = v !is Map<*, *> && v !is List<*>
+
+    // ---------- Tokens ----------
+
+    private fun renderPrimitive(v: Any?): String = when (v) {
         null -> "null"
         is String -> escape(v, options.delimiter)
         is Number -> formatCanonicalNumber(v)
@@ -114,9 +120,15 @@ class Encoder(private val options: EncodeOptions) {
         else -> escape(v.toString(), options.delimiter)
     }
 
-    // Cells and inline array values follow the same quoting rules as object values: an unquoted cell
-    // that looks like a number, a literal or contains a delimiter would decode to a different value.
-    private fun renderCell(v: Any?): String = renderScalarOrInline(v)
+    /**
+     * Key encoding (§7.3): identifiers stay unquoted, anything else is quoted and escaped.
+     * A null key is written as the legacy "-" entry, which the decoder reads back as the null key.
+     */
+    private fun renderKey(key: Any?): String {
+        if (key == null) return "-"
+        val k = key.toString()
+        return if (UNQUOTED_KEY.matches(k)) k else "\"" + escapeBody(k) + "\""
+    }
 
     // A non-comma delimiter is declared as the last symbol inside the brackets ("[N\t]", "[#N|]"), as the decoder expects.
     private fun lengthPart(size: Int): String {
@@ -141,6 +153,10 @@ class Encoder(private val options: EncodeOptions) {
         }
         val plain = bd.stripTrailingZeros().toPlainString()
         return if (plain == "-0") "0" else plain
+    }
+
+    private companion object {
+        val UNQUOTED_KEY = Regex("^[A-Za-z_][A-Za-z0-9_.]*$")
     }
 }
 
@@ -180,18 +196,20 @@ private fun escape(s: String, delimiter: Delimiter): String {
                     s.startsWith('#')
             )
 
-    val body = buildString {
-        for (c in s) {
-            when (c) {
-                '\\' -> append("\\\\")
-                '"'  -> append("\\\"")
-                '\n' -> append("\\n")
-                '\r' -> append("\\r")
-                '\t' -> append("\\t")
-                else -> append(c)
-            }
+    val body = escapeBody(s)
+    return if (needsQuote) "\"$body\"" else body
+}
+
+/** Escapes \\, ", LF, CR and tab for use inside a quoted string or key (§7.1). */
+private fun escapeBody(s: String): String = buildString {
+    for (c in s) {
+        when (c) {
+            '\\' -> append("\\\\")
+            '"' -> append("\\\"")
+            '\n' -> append("\\n")
+            '\r' -> append("\\r")
+            '\t' -> append("\\t")
+            else -> append(c)
         }
     }
-
-    return if (needsQuote) "\"$body\"" else body
 }

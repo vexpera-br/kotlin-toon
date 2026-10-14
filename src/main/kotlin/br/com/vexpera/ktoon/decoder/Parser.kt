@@ -172,10 +172,15 @@ internal class Parser(private val lines: List<Line>, private val ctx: ParseConte
         while (lines.getOrNull(pos)?.isBlank == true) pos++
     }
 
-    /** Row or key-value line at row depth (§9.3 disambiguation). */
+    /**
+     * Row or key-value line at row depth (§9.3 disambiguation). An array header is never a row: after the rows of a
+     * tabular first field of a list item, a sibling field such as `groups[1]{x,y}:` has the delimiter before its
+     * colon, inside the field list.
+     */
     private fun isRow(content: String, delim: Delim): Boolean {
         val colon = content.firstUnquotedColonIndex()
         if (colon < 0) return true
+        if (runCatching { Header.tryParse(content) }.getOrNull() != null) return false
         val d = content.firstUnquotedIndexOf(delim.ch)
         return d in 0 until colon
     }
