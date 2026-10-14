@@ -1,0 +1,4 @@
+# Cases from spec-fixtures/v1.4.0 that the library does not pass yet.
+# Format: <fixture file> :: <test name> # <reason> (§<spec section>)
+# ToonSpecFixturesTest fails if a listed case starts passing: remove its line when fixing it.
+# Empty: the library passes every v1.4.0 fixture.

@@ -21,6 +21,8 @@ repositories {
 dependencies {
     implementation(kotlin("reflect"))
     testImplementation(kotlin("test"))
+    // Test-only: reads the JSON conformance fixtures of the TOON spec.
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 }
 
 mavenPublishing {

@@ -116,13 +116,12 @@ class ToonSpecComplianceTest {
         assertEquals(2, users.size)
     }
 
-    // 🔟 unsupported list items
+    // 🔟 objects as list items (spec §9.4, §10): valid TOON, decoded in strict mode
     @Test
-    fun unimplementedListItemShouldThrowInStrictMode() {
-        val text = readSpecFile("10_unsupported_list_items.toon")
-        assertFailsWith<ToonParseException> {
-            Toon.decode(text, DecoderOptions(strict = true, debug = true))
-        }
+    fun decodeObjectsAsListItemsInStrictMode() {
+        val text = readSpecFile("10_objects_as_list_items.toon")
+        val decoded = Toon.decode(text, DecoderOptions(strict = true)) as Map<*, *>
+        assertEquals(listOf(mapOf("id" to 1L), mapOf("id" to 2L)), decoded["items"])
     }
 
     @Test

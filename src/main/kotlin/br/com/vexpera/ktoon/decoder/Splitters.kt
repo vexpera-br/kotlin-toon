@@ -18,8 +18,6 @@ internal object Splitters {
         var inQuotes = false
         var i = 0
 
-        println("[Splitters] splitRespectingQuotes input='$s' delim='$delim'")
-
         while (i < s.length) {
             val c = s[i]
 
@@ -50,8 +48,6 @@ internal object Splitters {
         }
 
         out += sb.toString()
-
-        println("[Splitters] result=$out")
         return out
     }
 }
