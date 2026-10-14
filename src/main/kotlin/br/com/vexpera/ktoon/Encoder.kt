@@ -174,7 +174,10 @@ private fun escape(s: String, delimiter: Delimiter): String {
                     s.contains('{') || s.contains('}') ||
                     s.any { it < ' ' } ||
                     s.contains(delimiter.symbol) ||
-                    s == "-" || s.startsWith('-')
+                    s == "-" || s.startsWith('-') ||
+                    // The decoder skips lines starting with "#" as comments (as TOON spec 4.x does), so a
+                    // table cell or list value starting with "#" at the start of a line would be lost.
+                    s.startsWith('#')
             )
 
     val body = buildString {

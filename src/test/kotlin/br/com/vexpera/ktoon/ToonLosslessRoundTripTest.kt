@@ -16,7 +16,7 @@ class ToonLosslessRoundTripTest {
 
     private val trickyStrings = listOf(
         "Cable HDMI, 2 m", "a|b", "tab\there", "42", "12.9", "-1", "1e3", "007", "true", "false", "null",
-        "", " leading", "trailing ", "a:b", "-promo", "line\nbreak", "cr\rhere", "quote\"inside", "back\\slash", "[x]", "{y}",
+        "", " leading", "trailing ", "a:b", "-promo", "line\nbreak", "cr\rhere", "quote\"inside", "back\\slash", "[x]", "{y}", "#hash",
     )
 
     private fun roundTrip(value: Any?, options: EncodeOptions = EncodeOptions()): Any? =
@@ -54,6 +54,14 @@ class ToonLosslessRoundTripTest {
             linkedMapOf("sku" to "1042", "price" to 34.5.toBigDecimal(), "stock" to 0L, "active" to false, "tag" to "null", "note" to "x, y"),
         )
         assertEquals(linkedMapOf("products" to rows), roundTrip(linkedMapOf("products" to rows)))
+    }
+
+    @Test
+    fun singleColumnCellsSurviveAtTheStartOfTheLine() {
+        val rows = trickyStrings.map { linkedMapOf("text" to it) }
+        for (delimiter in Delimiter.entries) {
+            assertEquals(linkedMapOf("rows" to rows), roundTrip(linkedMapOf("rows" to rows), EncodeOptions(delimiter = delimiter)), "delimiter=$delimiter")
+        }
     }
 
     @Test
