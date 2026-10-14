@@ -36,7 +36,7 @@ class Encoder(private val options: EncodeOptions) {
                 is List<*> -> {
                     val hom = homogenize(v)
                     if (hom != null) {
-                        val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
+                        val lengthPart = lengthPart(v.size)
                         val cols = hom.first.joinToString(options.delimiter.symbol)
                         line(level, "$k$lengthPart{$cols}:")
                         val delim = options.delimiter.symbol
@@ -48,11 +48,11 @@ class Encoder(private val options: EncodeOptions) {
 
                     val prim = v.all { it == null || it is String || it is Number || it is Boolean }
                     if (prim) {
-                        val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
+                        val lengthPart = lengthPart(v.size)
                         val joined = v.joinToString(options.delimiter.symbol) { renderCell(it) }
                         line(level, "$k$lengthPart: $joined")
                     } else {
-                        val lengthPart = if (options.lengthMarker) "[#${v.size}]" else "[${v.size}]"
+                        val lengthPart = lengthPart(v.size)
                         line(level, "$k$lengthPart:")
                         for (item in v) line(level + 1, "- ${renderScalarOrInline(item)}")
                     }
@@ -69,12 +69,13 @@ class Encoder(private val options: EncodeOptions) {
         }
     }
 
+    // Root arrays use a header without a key (TOON spec §5): "[N]{f1,f2}:", "[N]: v1,v2" or "[N]:" + "- item" lines.
     private fun writeList(list: List<Any?>, level: Int) {
+        val lengthPart = lengthPart(list.size)
         val hom = homogenize(list)
         if (hom != null) {
             val cols = hom.first.joinToString(options.delimiter.symbol)
-            val lengthPart = if (options.lengthMarker) "[#${list.size}]" else "[${list.size}]"
-            line(level, "items$lengthPart{$cols}:")
+            line(level, "$lengthPart{$cols}:")
             val delim = options.delimiter.symbol
             for (row in hom.second) line(level + 1, row.joinToString(delim) { renderCell(it) })
             return
@@ -82,11 +83,10 @@ class Encoder(private val options: EncodeOptions) {
 
         val prim = list.all { it == null || it is String || it is Number || it is Boolean }
         if (prim) {
-            val lengthPart = if (options.lengthMarker) "[#${list.size}]" else "[${list.size}]"
             val joined = list.joinToString(options.delimiter.symbol) { renderCell(it) }
-            line(level, "items$lengthPart: $joined")
+            line(level, "$lengthPart: $joined")
         } else {
-            line(level, "items:")
+            line(level, "$lengthPart:")
             for (item in list) line(level + 1, "- ${renderScalarOrInline(item)}")
         }
     }
@@ -114,12 +114,15 @@ class Encoder(private val options: EncodeOptions) {
         else -> escape(v.toString())
     }
 
-    private fun renderCell(v: Any?): String = when (v) {
-        null -> "null"
-        is String -> escape(v, quoteIfNeeded = false, forCell = true)
-        is Number -> formatCanonicalNumber(v)
-        is Boolean -> v.toString()
-        else -> escape(v.toString(), quoteIfNeeded = false, forCell = true)
+    // Cells and inline array values follow the same quoting rules as object values: an unquoted cell
+    // that looks like a number, a literal or contains a delimiter would decode to a different value.
+    private fun renderCell(v: Any?): String = renderScalarOrInline(v)
+
+    // A non-comma delimiter is declared as the last symbol inside the brackets ("[N\t]", "[#N|]"), as the decoder expects.
+    private fun lengthPart(size: Int): String {
+        val marker = if (options.lengthMarker) "#" else ""
+        val delim = if (options.delimiter == Delimiter.COMMA) "" else options.delimiter.symbol
+        return "[$marker$size$delim]"
     }
 
     private fun line(level: Int, text: String) {
@@ -145,10 +148,10 @@ class Encoder(private val options: EncodeOptions) {
  * Escapes special characters for safe use in TOON.
  *
  * @param s Original text.
- * @param quoteIfNeeded When true, wraps in quotes if there are spaces, delimiters, colons, tabs, etc.
- * @param forCell When true, applies light escaping for use inside table cells (does not add quotes).
+ * @param quoteIfNeeded When true, wraps in quotes if the text would otherwise decode to a different value
+ * (leading/trailing whitespace, literals, numbers, structural characters, any delimiter or control characters).
  */
-private fun escape(s: String, quoteIfNeeded: Boolean = true, forCell: Boolean = false): String {
+private fun escape(s: String, quoteIfNeeded: Boolean = true): String {
     if (s.isEmpty()) return "\"\"" // empty strings must always be quoted
 
     val numericLike = s.matches(Regex("^-?\\d+(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$"))
@@ -165,7 +168,7 @@ private fun escape(s: String, quoteIfNeeded: Boolean = true, forCell: Boolean = 
                     s.contains('\\') ||
                     s.contains('[') || s.contains(']') ||
                     s.contains('{') || s.contains('}') ||
-                    s.contains('\t') ||
+                    s.any { it < ' ' } ||
                     s.contains('|') ||
                     s.contains(',') ||
                     s == "-" || s.startsWith('-')
@@ -184,9 +187,5 @@ private fun escape(s: String, quoteIfNeeded: Boolean = true, forCell: Boolean = 
         }
     }
 
-    return when {
-        needsQuote -> "\"$body\""
-        forCell -> body.replace(",", "\\,") // table cell escapes comma without quoting
-        else -> body
-    }
+    return if (needsQuote) "\"$body\"" else body
 }
