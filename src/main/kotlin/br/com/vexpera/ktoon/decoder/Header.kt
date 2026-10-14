@@ -18,10 +18,7 @@ internal enum class Delim(val ch: Char) {
 }
 
 /**
- * Header to array, ex:
- * - key[3]{a,b,c}:
- * - [#2|]:
- * - key[4]:
+ * Array header (§6): `key[N<delim?>]{fields}: inline values`, the key being optional (root arrays and list items).
  */
 internal data class Header(
     val key: String?,
@@ -32,116 +29,79 @@ internal data class Header(
     val inlineValues: String?
 ) {
     companion object {
+        /**
+         * Parses [lineContent] as an array header, or returns null when the line is not shaped like one
+         * (it is then a key-value line or a primitive). A quoted key may contain brackets (`"key[x]"[2]: …`).
+         */
         fun tryParse(lineContent: String): Header? {
             val colon = lineContent.firstUnquotedColonIndex()
             if (colon < 0) return null
 
-            val left = lineContent.substring(0, colon).trimEnd()
-            val right = lineContent.substring(colon + 1).trimStart()
+            val left = lineContent.substring(0, colon).trim()
+            val right = lineContent.substring(colon + 1).trim()
 
-            val idxOpen = left.indexOf('[')
-            val idxClose = left.lastIndexOf(']')
-            if (idxOpen < 0 || idxClose < 0 || idxClose < idxOpen) return null
-
-            val maybeKey = left.substring(0, idxOpen).takeIf { it.isNotEmpty() }?.trim()
-            val bracket = left.substring(idxOpen + 1, idxClose)
-            val hasMarker = bracket.startsWith("#")
-            val digitsStart = if (hasMarker) 1 else 0
-
-            var delimSym: Char? = null
-            var nDigitsEnd = bracket.length
-            if (bracket.isNotEmpty()) {
-                val last = bracket.last()
-                if (last == '\t' || last == '|') {
-                    delimSym = last
-                    nDigitsEnd -= 1
-                }
+            val key: String?
+            val idxOpen: Int
+            if (left.startsWith("\"")) {
+                val closing = closingQuoteIndex(left)
+                if (closing < 0 || closing + 1 >= left.length || left[closing + 1] != '[') return null
+                key = ValueParsers.parseQuotedStringStrict(left.substring(0, closing + 1))
+                idxOpen = closing + 1
+            } else {
+                idxOpen = left.indexOf('[')
+                if (idxOpen < 0) return null
+                val token = left.substring(0, idxOpen).trim()
+                key = if (token.isEmpty()) null else token
             }
 
-            val numberPart = bracket.substring(digitsStart, nDigitsEnd)
+            val idxClose = left.indexOf(']', idxOpen)
+            if (idxClose < 0) return null
+
+            val bracket = left.substring(idxOpen + 1, idxClose)
+            val hasMarker = bracket.startsWith("#")
+            var delimSym: Char? = null
+            var digitsEnd = bracket.length
+            if (bracket.isNotEmpty() && (bracket.last() == '\t' || bracket.last() == '|')) {
+                delimSym = bracket.last()
+                digitsEnd -= 1
+            }
+            val numberPart = bracket.substring(if (hasMarker) 1 else 0, digitsEnd)
+            if (numberPart.isEmpty() || !numberPart.all { it.isDigit() }) return null
             val n = numberPart.toIntOrNull() ?: return null
             val delim = Delim.fromBracketSymbol(delimSym)
 
             val afterBracket = left.substring(idxClose + 1).trim()
-            var fields: List<String>? = null
-            if (afterBracket.startsWith("{") && afterBracket.endsWith("}")) {
-                fields = splitFields(
-                    afterBracket.substring(1, afterBracket.length - 1),
-                    delim
-                )
-            } else if (afterBracket.isNotEmpty()) {
-                return null
+            val fields: List<String>? = when {
+                afterBracket.isEmpty() -> null
+                afterBracket.startsWith("{") && afterBracket.endsWith("}") ->
+                    splitFields(afterBracket.substring(1, afterBracket.length - 1), delim)
+                else -> return null
             }
 
+            val inline = right.takeIf { it.isNotEmpty() }
+            if (fields != null && inline != null)
+                throw DecodeException("A tabular header cannot have inline values: ${lineContent.show()}")
+
             return Header(
-                key = maybeKey?.let { Keys.decodeKeyToken(it) },
+                key = if (key == null || left.startsWith("\"")) key else Keys.decodeKeyToken(key),
                 length = n,
                 delim = delim,
                 fields = fields,
                 hasLengthMarker = hasMarker,
-                inlineValues = right.takeIf { it.isNotEmpty() }
+                inlineValues = inline
             )
         }
 
-        fun parseOrThrow(lineContent: String, ctx: ParseContext): Header {
-            val colon = lineContent.firstUnquotedColonIndex()
-                .takeIf { it >= 0 }
-                ?: throw DecodeException("Missing colon in header: ${lineContent.show()}")
-
-            val left = lineContent.substring(0, colon).trimEnd()
-            val right = lineContent.substring(colon + 1).trimStart()
-
-            val idxOpen = left.indexOf('[')
-            val idxClose = left.lastIndexOf(']')
-            if (idxOpen < 0 || idxClose < 0 || idxClose < idxOpen)
-                throw DecodeException("Invalid array header (missing [...]): ${lineContent.show()}")
-
-            val maybeKey = left.substring(0, idxOpen).takeIf { it.isNotEmpty() }?.trim()
-            val keyDecoded = maybeKey?.let { Keys.decodeKeyToken(it) }
-            val bracket = left.substring(idxOpen + 1, idxClose)
-            val hasMarker = bracket.startsWith("#")
-            val digitsStart = if (hasMarker) 1 else 0
-
-            var delimSym: Char? = null
-            var nDigitsEnd = bracket.length
-            if (bracket.isNotEmpty()) {
-                val last = bracket.last()
-                if (last == '\t' || last == '|') {
-                    delimSym = last
-                    nDigitsEnd -= 1
+        private fun closingQuoteIndex(s: String): Int {
+            var i = 1
+            while (i < s.length) {
+                when (s[i]) {
+                    '\\' -> i += 2
+                    '"' -> return i
+                    else -> i++
                 }
             }
-
-            val numberPart = bracket.substring(digitsStart, nDigitsEnd)
-            val n = numberPart.toIntOrNull()
-                ?: throw DecodeException("Invalid array length in header: '$numberPart'")
-
-            val delim = Delim.fromBracketSymbol(delimSym)
-            val afterBracket = left.substring(idxClose + 1).trim()
-
-            var fields: List<String>? = null
-            if (afterBracket.isNotEmpty()) {
-                if (afterBracket.startsWith("{") && afterBracket.endsWith("}")) {
-                    fields = splitFields(
-                        afterBracket.substring(1, afterBracket.length - 1),
-                        delim
-                    )
-                } else {
-                    throw DecodeException("Invalid header fields segment: ${afterBracket.show()}")
-                }
-            }
-
-            val hdr = Header(
-                key = keyDecoded,
-                length = n,
-                delim = delim,
-                fields = fields,
-                hasLengthMarker = hasMarker,
-                inlineValues = right.takeIf { it.isNotEmpty() }
-            )
-
-            ctx.debug(null, "Header.parseOrThrow → $hdr")
-            return hdr
+            return -1
         }
 
         private fun splitFields(s: String, delim: Delim): List<String> {

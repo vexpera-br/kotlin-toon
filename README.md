@@ -2,7 +2,7 @@
 
 **TOON (Token-Oriented Object Notation)** is a lightweight, human-friendly data serialization format designed for concise, structured data — ideal for LLMs, configuration files, structured logs, and beyond.
 
-**kotlin-toon** is a 100% Kotlin implementation — spec-compliant and ready for production. Based on [the original spec from Johann Schopplich](https://github.com/toon-format/spec/blob/main/SPEC.md): 
+**kotlin-toon** is a 100% Kotlin implementation — spec-compliant and ready for production. Based on [the original spec from Johann Schopplich](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md) (v1.4): 
 
 
 TOON is inspired by the readability of YAML and the tabular elegance of CSV, and specially useful to provide structured data for LLM APIs (because a verbose protocol generates more tokens, and tokens can be expensive).
@@ -19,7 +19,7 @@ TOON is inspired by the readability of YAML and the tabular elegance of CSV, and
 | ✅ No dependencies             | Pure Kotlin, zero external libraries                |
 | ✅ Reversible encoding         | `decode → encode → decode` is lossless              |
 | ✅ Performance-optimized       | Fast, linear parsing — ideal for JVM & Kotlin Multiplatform (soon) |
-| ✅ Spec-conformant             | Fully compliant with official TOON specification    |
+| ✅ Spec-conformant             | Passes all 323 official conformance fixtures of TOON spec v1.4.0 |
 
 ---
 
