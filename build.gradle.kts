@@ -11,7 +11,7 @@ plugins {
 }
 
 group = "br.com.vexpera"
-version = "1.0.0"
+version = "1.0.1"
 description = "TOON – Token-Oriented Object Notation for Kotlin (JVM core)"
 
 repositories {
