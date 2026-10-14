@@ -160,6 +160,20 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 ---
 
+## 🚀 Releasing
+
+Releases go to Maven Central through the [Sonatype Central Portal](https://central.sonatype.com/), with the
+[gradle-maven-publish-plugin](https://vanniktech.github.io/gradle-maven-publish-plugin/central/).
+
+1. Set `version` in `build.gradle.kts`.
+2. Provide the credentials outside the repository, in `~/.gradle/gradle.properties` or as `ORG_GRADLE_PROJECT_*`
+   environment variables:
+   - `mavenCentralUsername` / `mavenCentralPassword`: a Central Portal **user token**, not the login password;
+   - signing: `signingInMemoryKey` (+ `signingInMemoryKeyPassword`), or `signing.keyId` / `signing.password` /
+     `signing.secretKeyRingFile`, or `signing.gnupg.keyName` to sign through the local gpg agent.
+3. Run `./gradlew publishToMavenCentral`, then press **Publish** on the deployment at
+   <https://central.sonatype.com/publishing/deployments> (or run `./gradlew publishAndReleaseToMavenCentral` to do both).
+
 ## COMMING SOON:
 
 * _Path expansion_ and _key folding_ (new in spec 1,5)
@@ -168,8 +182,8 @@ implementation("br.com.vexpera:kotlin-toon:1.0.0")
 
 ## 📚 Resources
 
-* [Specification](https://github.com/vexpera/kotlin-toon/blob/main/SPEC.md)
-* [Issue Tracker](https://github.com/vexpera/kotlin-toon/issues)
+* [Specification (v1.4)](https://github.com/toon-format/spec/blob/v1.4.0/SPEC.md)
+* [Issue Tracker](https://github.com/vexpera-br/kotlin-toon/issues)
 * [Official TOON format](https://github.com/toon-data/toon)
 
 ---

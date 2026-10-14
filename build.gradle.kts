@@ -1,9 +1,13 @@
+import com.vanniktech.maven.publish.JavadocJar
+import com.vanniktech.maven.publish.KotlinJvm
+
 plugins {
     kotlin("jvm") version "2.0.21"
-    `maven-publish`
-    signing
-    id("io.codearte.nexus-staging") version "0.30.0"
     id("org.jetbrains.dokka") version "1.9.10"
+    signing
+    // Publishes to the Sonatype Central Portal (OSSRH / s01.oss.sonatype.org was shut down).
+    // 0.35.0 is the last release that supports Kotlin 2.0.x, Gradle 8.13 and Dokka v1 (0.36.0 raised all three).
+    id("com.vanniktech.maven.publish") version "0.35.0"
 }
 
 group = "br.com.vexpera"
@@ -19,72 +23,40 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-tasks.register<Jar>("sourcesJar") {
-    archiveClassifier.set("sources")
-    from(sourceSets.main.get().allSource)
-}
+mavenPublishing {
+    configure(KotlinJvm(javadocJar = JavadocJar.Dokka("dokkaHtml"), sourcesJar = true))
+    publishToMavenCentral()
+    signAllPublications()
 
-tasks.register<Jar>("javadocJar") {
-    dependsOn("dokkaHtml")
-    archiveClassifier.set("javadoc")
-    from(buildDir.resolve("dokka"))
-}
+    coordinates("br.com.vexpera", "kotlin-toon", version.toString())
 
-publishing {
-    publications {
-        create<MavenPublication>("toon") {
-            from(components["kotlin"])
-            artifact(tasks["sourcesJar"])
-            artifact(tasks["javadocJar"])
-            groupId = "br.com.vexpera"
-            artifactId = "kotlin-toon"
-            version = "1.0.0"
-
-            pom {
-                name.set("kotlin-toon")
-                description.set("TOON – a minimal human-readable serialization format for Kotlin")
-                url.set("https://github.com/vexpera/kotlin-toon")
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
-                developers {
-                    developer {
-                        id.set("claudiomarcelo")
-                        name.set("Cláudio Marcelo Silva")
-                        email.set("vexpera.br@gmail.com")
-                    }
-                }
-                scm {
-                    connection.set("scm:git:https://github.com/vexpera/kotlin-toon.git")
-                    developerConnection.set("scm:git:ssh://github.com:vexpera/kotlin-toon.git")
-                    url.set("https://github.com/vexpera/kotlin-toon")
-                }
+    pom {
+        name.set("kotlin-toon")
+        description.set("TOON – a minimal human-readable serialization format for Kotlin")
+        url.set("https://github.com/vexpera-br/kotlin-toon")
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/licenses/MIT")
             }
         }
-    }
-
-    repositories {
-        maven {
-            name = "OSSRH"
-            url = uri("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/")
-            credentials {
-                username = System.getenv("OSSRH_USERNAME")
-                password = System.getenv("OSSRH_PASSWORD")
+        developers {
+            developer {
+                id.set("claudiomarcelo")
+                name.set("Cláudio Marcelo Silva")
+                email.set("vexpera.br@gmail.com")
             }
+        }
+        scm {
+            connection.set("scm:git:https://github.com/vexpera-br/kotlin-toon.git")
+            developerConnection.set("scm:git:ssh://git@github.com/vexpera-br/kotlin-toon.git")
+            url.set("https://github.com/vexpera-br/kotlin-toon")
         }
     }
 }
 
-signing {
-    useGpgCmd()
-    sign(publishing.publications["toon"])
-}
-
-nexusStaging {
-    packageGroup = "br.com.vexpera"
-    username = System.getenv("OSSRH_USERNAME")
-    password = System.getenv("OSSRH_PASSWORD")
+// Signing: an in-memory key (signingInMemoryKey*) or a keyring (signing.keyId / signing.secretKeyRingFile) works out of
+// the box. To keep signing through the local gpg agent, as releases did before, set signing.gnupg.keyName.
+if (providers.gradleProperty("signing.gnupg.keyName").isPresent) {
+    signing { useGpgCmd() }
 }
